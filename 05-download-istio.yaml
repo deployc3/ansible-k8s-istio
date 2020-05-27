@@ -1,0 +1,38 @@
+- hosts: master
+  become: yes
+  tasks:
+
+    - name: download istio script
+      become_user: "{{ ansible_user }}"
+      get_url:
+        url: https://istio.io/downloadIstio
+        dest: $HOME/downloadIstioCandidate.sh
+        mode: a+x
+      register: istio_script
+
+    - name: run istio download script
+      become_user: "{{ ansible_user }}"
+      shell: ISTIO_VERSION={{ istio_version }} sh "{{ istio_script.dest }}"
+
+    - name: remove istio download script
+      become_user: "{{ ansible_user }}"
+      file:
+        path: "{{ istio_script.dest }}"
+        state: absent
+
+    - name: istio_home
+      become_user: "{{ ansible_user }}"
+      shell: echo $HOME
+      register: istio_home
+    
+    - name: set extra_path
+      set_fact:
+        extra_path: "{{ istio_home.stdout }}/istio-{{ istio_version }}/bin"
+
+    - name: 'Add {{ extra_path }} to PATH'
+      lineinfile:
+        path: /etc/environment
+        regexp: 'PATH=(["])((?!.*?{{ extra_path }}).*?)(["])$'
+        line: 'PATH=\1\2:{{ extra_path }}\3'
+        backrefs: yes
+      

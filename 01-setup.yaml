@@ -1,0 +1,21 @@
+- hosts: all
+  become: yes
+  tasks:
+
+    # - name: create the 'ubuntu' user
+    #   user: name=ubuntu append=yes state=present createhome=yes shell=/bin/bash
+    
+    # - name: allow 'ubuntu' to have passwordless sudo
+    #   lineinfile:
+    #     dest: /etc/sudoers
+    #     line: 'ubuntu ALL=(ALL) NOPASSWD: ALL'
+    #     validate: 'visudo -cf %s'
+
+    - name: disable swap 1/2
+      shell: swapoff -a
+
+    - name: disable swap 2/2
+      replace:
+        path: /etc/fstab
+        regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
+        replace: '# \1'

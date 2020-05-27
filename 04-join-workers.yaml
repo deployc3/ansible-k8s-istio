@@ -1,0 +1,36 @@
+- hosts: master
+  become: yes
+  tasks:
+  
+    - name: get k8s token"
+      shell: kubeadm token list | cut -d ' ' -f1 | sed -n '2p'
+      register: k8s_token
+
+    - name: get k8s master ca hash"
+      shell: openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'
+      register: k8s_master_ca_hash
+
+    - name: set add k8s token and hash to dummy host"
+      add_host:
+        name:   "k8s_token_holder"
+        token:  "{{ k8s_token.stdout }}"
+        hash:   "{{ k8s_master_ca_hash.stdout }}"
+
+- hosts: workers
+  become: yes
+  tasks:
+
+    - name: restart service docker service
+      systemd:
+        state: restarted
+        daemon_reload: yes
+        name: docker
+
+    - name: join cluster kubeadm join"
+      shell: 
+        kubeadm join --token={{ hostvars['k8s_token_holder']['token'] }} 
+        --discovery-token-ca-cert-hash sha256:{{ hostvars['k8s_token_holder']['hash'] }} 
+        {{k8s_master_node_ip}}:{{k8s_api_secure_port}} >> node_joined.txt
+      args:
+        chdir: /home/{{ ansible_user }}
+        creates: node_joined.txt

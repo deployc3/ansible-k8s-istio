@@ -1,0 +1,11 @@
+[master]
+k8s181 ansible_user=biro
+
+[workers]
+k8s182 ansible_user=biro
+k8s183 ansible_user=biro
+
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3
+k8s_master_node_ip=192.168.0.181
+k8s_api_secure_port=6443
